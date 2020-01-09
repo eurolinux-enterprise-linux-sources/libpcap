@@ -46,19 +46,24 @@ VPATH = @srcdir@
 
 LD = /usr/bin/ld
 CC = @CC@
+AR = @AR@
+LN_S = @LN_S@
+MKDEP = @MKDEP@
 CCOPT = @V_CCOPT@
 INCLS = -I. @V_INCLS@
 DEFS = @DEFS@ @V_DEFS@
 ADDLOBJS = @ADDLOBJS@
 ADDLARCHIVEOBJS = @ADDLARCHIVEOBJS@
 LIBS = @LIBS@
+CFLAGS = @CFLAGS@
 LDFLAGS = @LDFLAGS@
 DYEXT = @DYEXT@
 V_RPATH_OPT = @V_RPATH_OPT@
+DEPENDENCY_CFLAG = @DEPENDENCY_CFLAG@
 PROG=libpcap
 
 # Standard CFLAGS
-CFLAGS = $(CCOPT) $(INCLS) $(DEFS)
+FULL_CFLAGS = $(CCOPT) $(INCLS) $(DEFS) $(CFLAGS)
 
 INSTALL = @INSTALL@
 INSTALL_PROGRAM = @INSTALL_PROGRAM@
@@ -78,14 +83,15 @@ YACC = @V_YACC@
 # problem if you don't own the file but can write to the directory.
 .c.o:
 	@rm -f $@
-	$(CC) $(CFLAGS) -c $(srcdir)/$*.c
+	$(CC) $(FULL_CFLAGS) -c $(srcdir)/$*.c
 
-PSRC =	pcap-@V_PCAP@.c @USB_SRC@ @BT_SRC@
+PSRC =	pcap-@V_PCAP@.c @USB_SRC@ @BT_SRC@ @CAN_SRC@ @NETFILTER_SRC@ @CANUSB_SRC@ @DBUS_SRC@
 FSRC =  fad-@V_FINDALLDEVS@.c
 SSRC =  @SSRC@
-CSRC =	pcap.c inet.c gencode.c optimize.c nametoaddr.c \
-	etherent.c savefile.c bpf_filter.c bpf_image.c bpf_dump.c
-GENSRC = scanner.c grammar.c version.c
+CSRC =	pcap.c inet.c gencode.c optimize.c nametoaddr.c etherent.c \
+	savefile.c sf-pcap.c sf-pcap-ng.c pcap-common.c \
+	bpf_image.c bpf_dump.c
+GENSRC = scanner.c grammar.c bpf_filter.c version.c
 LIBOBJS = @LIBOBJS@
 
 SRC =	$(PSRC) $(FSRC) $(CSRC) $(SSRC) $(GENSRC)
@@ -99,6 +105,7 @@ PUBHDR = \
 	pcap-namedb.h \
 	pcap/bpf.h \
 	pcap/bluetooth.h \
+	pcap/ipnet.h \
 	pcap/namedb.h \
 	pcap/pcap.h \
 	pcap/sll.h \
@@ -113,10 +120,30 @@ HDR = $(PUBHDR) \
 	ieee80211.h \
 	llc.h \
 	nlpid.h \
+	pcap-common.h \
 	pcap-int.h \
 	pcap-stdinc.h \
 	ppp.h \
+	sf-pcap.h \
+	sf-pcap-ng.h \
 	sunatmpos.h
+
+TESTS = \
+	filtertest \
+	findalldevstest \
+	nonblocktest \
+	opentest \
+	selpolltest \
+	valgrindtest
+
+TESTS_SRC = \
+	tests/filtertest.c \
+	tests/findalldevstest.c \
+	tests/nonblocktest.c \
+	tests/opentest.c \
+	tests/reactivatetest.c \
+	tests/selpolltest.c \
+	tests/valgrindtest.c
 
 GENHDR = \
 	scanner.h tokdefs.h version.h
@@ -124,8 +151,8 @@ GENHDR = \
 TAGFILES = \
 	$(SRC) $(HDR)
 
-CLEANFILES = $(OBJ) libpcap.* filtertest findalldevstest selpolltest \
-	opentest $(PROG)-`cat VERSION`.tar.gz $(GENSRC) $(GENHDR) \
+CLEANFILES = $(OBJ) libpcap.* $(TESTS) \
+	$(PROG)-`cat $(srcdir)/VERSION`.tar.gz $(GENSRC) $(GENHDR) \
 	lex.yy.c pcap-config
 
 MAN1 = pcap-config.1
@@ -136,8 +163,10 @@ MAN3PCAP_EXPAND = \
 	pcap_datalink.3pcap.in \
 	pcap_dump_open.3pcap.in \
 	pcap_list_datalinks.3pcap.in \
+	pcap_list_tstamp_types.3pcap.in \
 	pcap_open_dead.3pcap.in \
-	pcap_open_offline.3pcap.in
+	pcap_open_offline.3pcap.in \
+	pcap_set_tstamp_type.3pcap.in
 
 MAN3PCAP_NOEXPAND = \
 	pcap_activate.3pcap \
@@ -155,9 +184,7 @@ MAN3PCAP_NOEXPAND = \
 	pcap_file.3pcap \
 	pcap_fileno.3pcap \
 	pcap_findalldevs.3pcap \
-	pcap_freealldevs.3pcap \
 	pcap_freecode.3pcap \
-	pcap_free_datalinks.3pcap \
 	pcap_get_selectable_fd.3pcap \
 	pcap_geterr.3pcap \
 	pcap_inject.3pcap \
@@ -172,6 +199,7 @@ MAN3PCAP_NOEXPAND = \
 	pcap_open_live.3pcap \
 	pcap_set_buffer_size.3pcap \
 	pcap_set_datalink.3pcap \
+	pcap_set_immediate_mode.3pcap \
 	pcap_set_promisc.3pcap \
 	pcap_set_rfmon.3pcap \
 	pcap_set_snaplen.3pcap \
@@ -182,7 +210,9 @@ MAN3PCAP_NOEXPAND = \
 	pcap_snapshot.3pcap \
 	pcap_stats.3pcap \
 	pcap_statustostr.3pcap \
-	pcap_strerror.3pcap
+	pcap_strerror.3pcap \
+	pcap_tstamp_type_name_to_val.3pcap \
+	pcap_tstamp_type_val_to_name.3pcap
 
 MAN3PCAP = $(MAN3PCAP_NOEXPAND) $(MAN3PCAP_EXPAND:.in=)
 
@@ -191,9 +221,11 @@ MANFILE = \
 
 MANMISC = \
 	pcap-filter.manmisc.in \
-	pcap-linktype.manmisc.in
+	pcap-linktype.manmisc.in \
+	pcap-tstamp.manmisc.in
 
 EXTRA_DIST = \
+	$(TESTS_SRC) \
 	CHANGES \
 	ChmodBPF/ChmodBPF \
 	ChmodBPF/StartupParameters.plist \
@@ -201,6 +233,7 @@ EXTRA_DIST = \
 	INSTALL.txt \
 	LICENSE \
 	Makefile.in \
+	Makefile-devel-adds \
 	README \
 	README.aix \
 	README.dag \
@@ -232,8 +265,6 @@ EXTRA_DIST = \
 	fad-null.c \
 	fad-sita.c \
 	fad-win32.c \
-	filtertest.c \
-	findalldevstest.c \
 	grammar.y \
 	install-sh \
 	lbl/os-aix4.h \
@@ -258,15 +289,20 @@ EXTRA_DIST = \
 	msdos/pktdrvr.c \
 	msdos/pktdrvr.h \
 	msdos/readme.dos \
-	opentest.c \
 	org.tcpdump.chmod_bpf.plist \
 	packaging/pcap.spec.in \
 	pcap-bpf.c \
 	pcap-bt-linux.c \
 	pcap-bt-linux.h \
+	pcap-can-linux.c \
+	pcap-can-linux.h \
+	pcap-canusb-linux.c \
+	pcap-canusb-linux.h \
 	pcap-config.in \
 	pcap-dag.c \
 	pcap-dag.h \
+	pcap-dbus.c \
+	pcap-dbus.h \
 	pcap-dlpi.c \
 	pcap-dos.c \
 	pcap-dos.h \
@@ -275,6 +311,8 @@ EXTRA_DIST = \
 	pcap-libdlpi.c \
 	pcap-linux.c \
 	pcap-namedb.h \
+	pcap-netfilter-linux.c \
+	pcap-netfilter-linux.h \
 	pcap-nit.c \
 	pcap-null.c \
 	pcap-pf.c \
@@ -283,6 +321,8 @@ EXTRA_DIST = \
 	pcap-sita.h \
 	pcap-sita.c \
 	pcap-sita.html \
+	pcap-snf.c \
+	pcap-snf.h \
 	pcap-snit.c \
 	pcap-snoop.c \
 	pcap-usb-linux.c \
@@ -290,7 +330,6 @@ EXTRA_DIST = \
 	pcap-win32.c \
 	runlex.sh \
 	scanner.l \
-	selpolltest.c \
 	Win32/Include/Gnuc.h \
 	Win32/Include/addrinfo.h \
 	Win32/Include/bittypes.h \
@@ -319,7 +358,7 @@ all: libpcap.a shared pcap-config
 
 libpcap.a: $(OBJ)
 	@rm -f $@
-	ar rc $@ $(OBJ) $(ADDLARCHIVEOBJS)
+	$(AR) rc $@ $(OBJ) $(ADDLARCHIVEOBJS)
 	$(RANLIB) $@
 
 shared: libpcap.$(DYEXT)
@@ -391,8 +430,8 @@ libpcap.sl: $(OBJ)
 #
 libpcap.shareda: $(OBJ)
 	@rm -f $@ shr.o
-	$(CC) @V_SHLIB_OPT@ -o shr.o $(OBJ) $(ADDLOBJS) $(LIBS)
-	ar rc $@ shr.o
+	$(CC) @V_SHLIB_OPT@ -o shr.o $(OBJ) $(ADDLOBJS) $(LDFLAGS) $(LIBS)
+	$(AR) rc $@ shr.o
 
 #
 # For platforms that don't support shared libraries (or on which we
@@ -405,7 +444,7 @@ scanner.c: $(srcdir)/scanner.l
 	$(srcdir)/runlex.sh $(LEX) -o$@ $<
 
 scanner.o: scanner.c tokdefs.h
-	$(CC) $(CFLAGS) -c scanner.c
+	$(CC) $(FULL_CFLAGS) -c scanner.c
 
 pcap.o: version.h
 
@@ -418,17 +457,23 @@ grammar.c: $(srcdir)/grammar.y
 
 grammar.o: grammar.c
 	@rm -f $@
-	$(CC) $(CFLAGS) -Dyylval=pcap_lval -c grammar.c
+	$(CC) $(FULL_CFLAGS) -Dyylval=pcap_lval -c grammar.c
 
 version.o: version.c
-	$(CC) $(CFLAGS) -c version.c
+	$(CC) $(FULL_CFLAGS) -c version.c
 
 snprintf.o: $(srcdir)/missing/snprintf.c
-	$(CC) $(CFLAGS) -o $@ -c $(srcdir)/missing/snprintf.c
+	$(CC) $(FULL_CFLAGS) -o $@ -c $(srcdir)/missing/snprintf.c
 
 version.c: $(srcdir)/VERSION
 	@rm -f $@
-	sed -e 's/.*/char pcap_version[] = "&";/' $(srcdir)/VERSION > $@
+	if grep GIT ${srcdir}/VERSION >/dev/null; then \
+		read ver <${srcdir}/VERSION; \
+		echo $$ver | tr -d '\012'; \
+		date +_%Y_%m_%d; \
+	else \
+		cat ${srcdir}/VERSION; \
+	fi | sed -e 's/.*/char pcap_version[] = "&";/' > $@
 
 #
 # NOTE: this really is supposed to be static; importing a string
@@ -439,42 +484,63 @@ version.c: $(srcdir)/VERSION
 #
 version.h: $(srcdir)/VERSION
 	@rm -f $@
-	sed -e 's/.*/static const char pcap_version_string[] = "libpcap version &";/' $(srcdir)/VERSION > $@
+	if grep GIT ${srcdir}/VERSION >/dev/null; then \
+		read ver <${srcdir}/VERSION; \
+		echo $$ver | tr -d '\012'; \
+		date +_%Y_%m_%d; \
+	else \
+		cat ${srcdir}/VERSION; \
+	fi | sed -e 's/.*/static const char pcap_version_string[] = "libpcap version &";/' > $@
 
 bpf_filter.c: $(srcdir)/bpf/net/bpf_filter.c
 	rm -f bpf_filter.c
 	ln -s $(srcdir)/bpf/net/bpf_filter.c bpf_filter.c
 
 bpf_filter.o: bpf_filter.c
-	$(CC) $(CFLAGS) -c bpf_filter.c
+	$(CC) $(FULL_CFLAGS) -c bpf_filter.c
 
 #
 # Generate the pcap-config script.
 #
-pcap-config: $(srcdir)/pcap-config.in
+# Some Makes, e.g. AIX Make and Solaris Make, can't handle "--file=$@.tmp:$<";
+# for example, the Solaris 9 make man page says
+#
+#	Because make assigns $< and $* as it would for implicit rules
+#	(according to the suffixes list and the directory contents),
+#	they may be unreliable when used within explicit target entries.
+#
+# and this is an explicit target entry.
+#
+# Therefore, instead of using $<, we explicitly put in $(srcdir)/pcap-config.in.
+#
+pcap-config: $(srcdir)/pcap-config.in ./config.status
 	@rm -f $@ $@.tmp
-	sed -e 's|@includedir[@]|$(includedir)|g' \
-	    -e 's|@libdir[@]|$(libdir)|g' \
-	    -e 's|@LIBS[@]|$(LIBS)|g' \
-	    -e 's|@V_RPATH_OPT[@]|$(V_RPATH_OPT)|g' \
-	    $(srcdir)/pcap-config.in >$@.tmp
+	./config.status --file=$@.tmp:$(srcdir)/pcap-config.in
 	mv $@.tmp $@
 	chmod a+x $@
 
 #
 # Test programs - not built by default, and not installed.
 #
-filtertest: filtertest.c libpcap.a
-	$(CC) $(CFLAGS) -I. -L. -o filtertest filtertest.c libpcap.a $(LIBS)
+tests: $(TESTS)
 
-findalldevstest: findalldevstest.c libpcap.a
-	$(CC) $(CFLAGS) -I. -L. -o findalldevstest findalldevstest.c libpcap.a $(LIBS)
+filtertest: tests/filtertest.c libpcap.a
+	$(CC) $(FULL_CFLAGS) -I. -L. -o filtertest $(srcdir)/tests/filtertest.c libpcap.a $(LIBS)
 
-selpolltest: selpolltest.c libpcap.a
-	$(CC) $(CFLAGS) -I. -L. -o selpolltest selpolltest.c libpcap.a $(LIBS)
+findalldevstest: tests/findalldevstest.c libpcap.a
+	$(CC) $(FULL_CFLAGS) -I. -L. -o findalldevstest $(srcdir)/tests/findalldevstest.c libpcap.a $(LIBS)
 
-opentest: opentest.c libpcap.a
-	$(CC) $(CFLAGS) -I. -L. -o opentest opentest.c libpcap.a $(LIBS)
+nonblocktest: tests/nonblocktest.c libpcap.a
+	$(CC) $(FULL_CFLAGS) -I. -L. -o nonblocktest $(srcdir)/tests/nonblocktest.c libpcap.a $(LIBS)
+
+opentest: tests/opentest.c libpcap.a
+	$(CC) $(FULL_CFLAGS) -I. -L. -o opentest $(srcdir)/tests/opentest.c libpcap.a $(LIBS)
+
+selpolltest: tests/selpolltest.c libpcap.a
+	$(CC) $(FULL_CFLAGS) -I. -L. -o selpolltest $(srcdir)/tests/selpolltest.c libpcap.a $(LIBS)
+
+valgrindtest: tests/valgrindtest.c libpcap.a
+	$(CC) $(FULL_CFLAGS) -I. -L. -o valgrindtest $(srcdir)/tests/valgrindtest.c libpcap.a $(LIBS)
 
 install: install-shared install-archive pcap-config
 	[ -d $(DESTDIR)$(libdir) ] || \
@@ -506,33 +572,39 @@ install: install-shared install-archive pcap-config
 	for i in $(MAN3PCAP_EXPAND:.in=); do \
 		$(INSTALL_DATA) $$i \
 		    $(DESTDIR)$(mandir)/man3/$$i; done
-	rm -f $(DESTDIR)$(mandir)/man3/pcap_datalink_val_to_description.3pcap
-	ln $(DESTDIR)$(mandir)/man3/pcap_datalink_val_to_name.3pcap \
-		 $(DESTDIR)$(mandir)/man3/pcap_datalink_val_to_description.3pcap
-	rm -f $(DESTDIR)$(mandir)/man3/pcap_dump_fopen.3pcap
-	ln $(DESTDIR)$(mandir)/man3/pcap_dump_open.3pcap \
-		 $(DESTDIR)$(mandir)/man3/pcap_dump_fopen.3pcap
-	rm -f $(DESTDIR)$(mandir)/man3/pcap_perror.3pcap
-	ln $(DESTDIR)$(mandir)/man3/pcap_geterr.3pcap \
-		 $(DESTDIR)$(mandir)/man3/pcap_perror.3pcap
-	rm -f $(DESTDIR)$(mandir)/man3/pcap_sendpacket.3pcap
-	ln $(DESTDIR)$(mandir)/man3/pcap_inject.3pcap \
-		 $(DESTDIR)$(mandir)/man3/pcap_sendpacket.3pcap
-	rm -f $(DESTDIR)$(mandir)/man3/pcap_dispatch.3pcap
-	ln $(DESTDIR)$(mandir)/man3/pcap_loop.3pcap \
-		 $(DESTDIR)$(mandir)/man3/pcap_dispatch.3pcap
-	rm -f $(DESTDIR)$(mandir)/man3/pcap_minor_version.3pcap
-	ln $(DESTDIR)$(mandir)/man3/pcap_major_version.3pcap \
-		 $(DESTDIR)$(mandir)/man3/pcap_minor_version.3pcap
-	rm -f $(DESTDIR)$(mandir)/man3/pcap_next.3pcap
-	ln $(DESTDIR)$(mandir)/man3/pcap_next_ex.3pcap \
-		 $(DESTDIR)$(mandir)/man3/pcap_next.3pcap
-	rm -f $(DESTDIR)$(mandir)/man3/pcap_fopen_offline.3pcap
-	ln $(DESTDIR)$(mandir)/man3/pcap_open_offline.3pcap \
-		 $(DESTDIR)$(mandir)/man3/pcap_fopen_offline.3pcap
-	rm -f $(DESTDIR)$(mandir)/man3/pcap_getnonblock.3pcap
-	ln $(DESTDIR)$(mandir)/man3/pcap_setnonblock.3pcap \
-		 $(DESTDIR)$(mandir)/man3/pcap_getnonblock.3pcap
+	(cd $(DESTDIR)$(mandir)/man3 && \
+	rm -f pcap_datalink_val_to_description.3pcap && \
+	$(LN_S) pcap_datalink_val_to_name.3pcap \
+		 pcap_datalink_val_to_description.3pcap && \
+	rm -f pcap_dump_fopen.3pcap && \
+	$(LN_S) pcap_dump_open.3pcap pcap_dump_fopen.3pcap && \
+	rm -f $pcap_freealldevs.3pcap && \
+	$(LN_S) pcap_findalldevs.3pcap pcap_freealldevs.3pcap && \
+	rm -f pcap_perror.3pcap && \
+	$(LN_S) pcap_geterr.3pcap pcap_perror.3pcap && \
+	rm -f pcap_sendpacket.3pcap && \
+	$(LN_S) pcap_inject.3pcap pcap_sendpacket.3pcap && \
+	rm -f pcap_free_datalinks.3pcap && \
+	$(LN_S) pcap_list_datalinks.3pcap pcap_free_datalinks.3pcap && \
+	rm -f pcap_free_tstamp_types.3pcap && \
+	$(LN_S) pcap_list_tstamp_types.3pcap pcap_free_tstamp_types.3pcap && \
+	rm -f pcap_dispatch.3pcap && \
+	$(LN_S) pcap_loop.3pcap pcap_dispatch.3pcap && \
+	rm -f pcap_minor_version.3pcap && \
+	$(LN_S) pcap_major_version.3pcap pcap_minor_version.3pcap && \
+	rm -f pcap_next.3pcap && \
+	$(LN_S) pcap_next_ex.3pcap pcap_next.3pcap && \
+	rm -f pcap_open_dead_with_tstamp_precision.3pcap && \
+	$(LN_S) pcap_open_dead.3pcap \
+		 pcap_open_dead_with_tstamp_precision.3pcap && \
+	rm -f pcap_open_offline_with_tstamp_precision.3pcap && \
+	$(LN_S) pcap_open_offline.3pcap pcap_open_offline_with_tstamp_precision.3pcap && \
+	rm -f pcap_fopen_offline.3pcap && \
+	$(LN_S) pcap_open_offline.3pcap pcap_fopen_offline.3pcap && \
+	rm -f pcap_fopen_offline_with_tstamp_precision.3pcap && \
+	$(LN_S) pcap_open_offline.3pcap pcap_fopen_offline_with_tstamp_precision.3pcap && \
+	rm -f pcap_getnonblock.3pcap && \
+	$(LN_S) pcap_setnonblock.3pcap pcap_getnonblock.3pcap)
 	for i in $(MANFILE); do \
 		$(INSTALL_DATA) `echo $$i | sed 's/.manfile.in/.manfile/'` \
 		    $(DESTDIR)$(mandir)/man@MAN_FILE_FORMATS@/`echo $$i | sed 's/.manfile.in/.@MAN_FILE_FORMATS@/'`; done
@@ -601,8 +673,11 @@ uninstall: uninstall-shared
 		rm -f $(DESTDIR)$(mandir)/man3/$$i; done
 	rm -f $(DESTDIR)$(mandir)/man3/pcap_datalink_val_to_description.3pcap
 	rm -f $(DESTDIR)$(mandir)/man3/pcap_dump_fopen.3pcap
+	rm -f $(DESTDIR)$(mandir)/man3/pcap_freealldevs.3pcap
 	rm -f $(DESTDIR)$(mandir)/man3/pcap_perror.3pcap
 	rm -f $(DESTDIR)$(mandir)/man3/pcap_sendpacket.3pcap
+	rm -f $(DESTDIR)$(mandir)/man3/pcap_free_datalinks.3pcap
+	rm -f $(DESTDIR)$(mandir)/man3/pcap_free_tstamp_types.3pcap
 	rm -f $(DESTDIR)$(mandir)/man3/pcap_dispatch.3pcap
 	rm -f $(DESTDIR)$(mandir)/man3/pcap_minor_version.3pcap
 	rm -f $(DESTDIR)$(mandir)/man3/pcap_next.3pcap
@@ -639,7 +714,7 @@ clean:
 
 distclean: clean
 	rm -f Makefile config.cache config.log config.status \
-	    config.h gnuc.h os-proto.h bpf_filter.c pcap-config \
+	    config.h gnuc.h net os-proto.h bpf_filter.c pcap-config \
 	    stamp-h stamp-h.in
 	rm -f $(MAN3PCAP_EXPAND:.in=) $(MANFILE:.in=) $(MANMISC:.in=)
 	rm -rf autom4te.cache
@@ -651,7 +726,7 @@ packaging/pcap.spec: packaging/pcap.spec.in VERSION
 	RPMVERSION=`cat VERSION | sed s/-.*//g`; \
 		sed -e s/@VERSION@/$$RPMVERSION/ -e s/@NAME@/libpcap-`cat VERSION`/ $<   > $@
 
-releasetar:
+releasetar: 
 	@cwd=`pwd` ; dir=`basename $$cwd` ; name=$(PROG)-`cat VERSION` ; \
 	   mkdir $$name; \
 	   tar cf - $(CSRC) $(HDR) $(MAN1) $(MAN3PCAP_EXPAND) \
@@ -661,9 +736,4 @@ releasetar:
 	   rm -rf $$name
 
 depend:	$(GENSRC) $(GENHDR) bpf_filter.c
-	./mkdep -c $(CC) $(DEFS) $(INCLS) $(SRC)
-
-Makefile: Makefile.in config.status
-	./config.status
-	@echo your Makefile was out of date, now run $(MAKE) again
-	exit 1
+	$(MKDEP) -c $(CC) -m $(DEPENDENCY_CFLAG) $(DEFS) $(INCLS) $(SRC)

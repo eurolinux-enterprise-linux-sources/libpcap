@@ -28,6 +28,20 @@ static const char rcsid[] _U_ =
 #include "config.h"
 #endif
 
+#ifdef WIN32
+#include <pcap-stdinc.h>
+#else /* WIN32 */
+#if HAVE_INTTYPES_H
+#include <inttypes.h>
+#elif HAVE_STDINT_H
+#include <stdint.h>
+#endif
+#ifdef HAVE_SYS_BITYPES_H
+#include <sys/bitypes.h>
+#endif
+#include <sys/types.h>
+#endif /* WIN32 */
+
 #include <stdio.h>
 #include <string.h>
 
@@ -278,11 +292,14 @@ bpf_image(p, n)
 		break;
 	}
 	(void)snprintf(operand, sizeof operand, fmt, v);
-	(void)snprintf(image, sizeof image,
-		      (BPF_CLASS(p->code) == BPF_JMP &&
-		       BPF_OP(p->code) != BPF_JA) ?
-		      "(%03d) %-8s %-16s jt %d\tjf %d"
-		      : "(%03d) %-8s %s",
-		      n, op, operand, n + 1 + p->jt, n + 1 + p->jf);
+	if (BPF_CLASS(p->code) == BPF_JMP && BPF_OP(p->code) != BPF_JA) {
+		(void)snprintf(image, sizeof image,
+			      "(%03d) %-8s %-16s jt %d\tjf %d",
+			      n, op, operand, n + 1 + p->jt, n + 1 + p->jf);
+	} else {
+		(void)snprintf(image, sizeof image,
+			      "(%03d) %-8s %s",
+			      n, op, operand);
+	}
 	return image;
 }

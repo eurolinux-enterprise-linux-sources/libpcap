@@ -1,20 +1,28 @@
 Name: libpcap
 Epoch: 14
-Version: 1.0.0
-Release: 6.20091201git117cb5%{?dist}
+Version: 1.4.0
+Release: 1.20130826git2dbcaa1%{?dist}
 Summary: A system-independent interface for user-level packet capture
 Group: Development/Libraries
 License: BSD with advertising
 URL: http://www.tcpdump.org
-BuildRequires: glibc-kernheaders >= 2.2.0 bison flex bluez-libs-devel
+BuildRequires: glibc-kernheaders >= 2.2.0 bison flex bluez-libs-devel autoconf
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
-#Source: http://www.tcpdump.org/release/%{name}-%{version}.tar.gz
-# git snapshot from git://bpf.tcpdump.org/libpcap
-Source: libpcap-1.0.0-20091201git117cb5.tar.bz2
+
+Source0: libpcap-1.4.0-20130826git2dbcaa1.tar.gz
+Source1: generate-tarball.sh
+# These manpages are not included upstream yet
+Source2: pcap_set_tstamp_precision.3pcap.in
+Source3: pcap_get_tstamp_precision.3pcap.in
+
 Patch1: libpcap-man.patch
 Patch2: libpcap-multilib.patch
 Patch3: libpcap-s390.patch
-Patch4: libpcap-0.8.3-ppp.patch
+Patch4: libpcap-makefile-in.patch
+Patch5: libpcap-configure-in.patch
+Patch6: libpcap-tstamp-precision-list-deadcode.patch
+Patch7: libpcap-tstamp-precision-list-init.patch
+Patch8: libpcap-tstamp-type-list-leak.patch
 
 %description
 Libpcap provides a portable framework for low-level network
@@ -46,13 +54,19 @@ This package provides the libraries, include files, and other
 resources needed for developing libpcap applications.
  
 %prep
-%setup -q -n libpcap
-echo '1.0.0' > VERSION
+%setup -q -n libpcap-%{version}
+
+cp %{SOURCE2} .
+cp %{SOURCE3} .
 
 %patch1 -p1 -b .man 
 %patch2 -p1 -b .multilib
 %patch3 -p1 -b .s390
-%patch4 -p0 -b .ppp
+%patch4 -p1 -b .makefile-in
+%patch5 -p1 -b .configure-in
+%patch6 -p1 -b .deadcode
+%patch7 -p1 -b .tstamp-precision-list-init
+%patch8 -p1 -b .tstamp-type-list-leak
 
 #sparc needs -fPIC 
 %ifarch %{sparc}
@@ -61,6 +75,7 @@ sed -i -e 's|-fpic|-fPIC|g' configure
 
 %build
 export CFLAGS="$RPM_OPT_FLAGS -fno-strict-aliasing $(getconf LFS_CFLAGS)"
+autoreconf -f -i
 %configure --enable-ipv6 --enable-bluetooth
 make %{?_smp_mflags}
 
@@ -79,7 +94,7 @@ rm -rf $RPM_BUILD_ROOT
 
 %files
 %defattr(-,root,root)
-%doc LICENSE README CHANGES CREDITS doc/pcap.txt
+%doc LICENSE README CHANGES CREDITS
 %{_libdir}/libpcap.so.*
 %{_mandir}/man7/pcap*.7*
 
@@ -94,6 +109,9 @@ rm -rf $RPM_BUILD_ROOT
 %{_mandir}/man5/pcap*.5*
 
 %changelog
+* Wed Aug 28 2013 Michal Sekletar <msekleta@redhat.com> 14:1.4.0-20130826git2dbcaa1
+- update to snapshot 20130826git2dbcaa1 (#916749)
+
 * Fri Jun 18 2010 Miroslav Lichvar <mlichvar@redhat.com> 14:1.0.0-6.20091201git117cb5
 - compile with -fno-strict-aliasing (#605080)
 

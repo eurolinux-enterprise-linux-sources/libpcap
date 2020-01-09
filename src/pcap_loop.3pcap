@@ -84,7 +84,7 @@ processed when reading a ``savefile''.
 \fIcnt\fP
 was 0 was undefined; different platforms and devices behaved
 differently, so code that must work with older versions of libpcap
-should use \-1, nor 0, as the value of
+should use \-1, not 0, as the value of
 \fIcnt\fP.)
 .ft R
 .PP
@@ -109,13 +109,19 @@ pointer to the first
 (as given in the
 .I struct pcap_pkthdr
 a pointer to which is passed to the callback routine)
-bytes of data from the packet.
+bytes of data from the packet.  The
+.I struct pcap_pkthdr
+and the packet data are not to be freed by the callback routine, and are
+not guaranteed to be valid after the callback routine returns; if the
+code needs them to be valid after the callback, it must make a copy of
+them.
 .SH RETURN VALUE
 .B pcap_loop()
 returns 0 if
 .I cnt
-is exhausted, \-1 if an error occurs, or \-2 if the loop terminated due
-to a call to
+is exhausted or if, when reading from a ``savefile'', no more packets
+are available.  It returns \-1 if an error occurs or \-2 if the loop
+terminated due to a call to
 .B pcap_breakloop()
 before any packets were processed.
 It does
