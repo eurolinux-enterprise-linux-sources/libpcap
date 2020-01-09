@@ -1,7 +1,7 @@
 Name: libpcap
 Epoch: 14
 Version: 1.4.0
-Release: 1.20130826git2dbcaa1%{?dist}
+Release: 4.20130826git2dbcaa1%{?dist}
 Summary: A system-independent interface for user-level packet capture
 Group: Development/Libraries
 License: BSD with advertising
@@ -23,6 +23,15 @@ Patch5: libpcap-configure-in.patch
 Patch6: libpcap-tstamp-precision-list-deadcode.patch
 Patch7: libpcap-tstamp-precision-list-init.patch
 Patch8: libpcap-tstamp-type-list-leak.patch
+Patch9:  0001-Introduce-bpf_filter1-function.patch
+Patch10: 0002-Use-BPF-extensions-in-compiled-filters.patch
+Patch11: 0003-More-descriptive-name-for-bpf_filter1.patch
+Patch12: 0004-Get-rid-of-unused-variable.patch
+Patch13: 0005-Move-the-socket-ops-out-of-gencode.c.patch
+Patch14: 0006-There-s-no-pcap_t-argument-to-code-generator-routine.patch
+Patch15: 0007-Fix-compilation-failure-on-RHEL6-where-TP_STATUS_VLA.patch
+Patch16: 0008-Fix-issues-discovered-by-coverity.patch
+Patch17: 0009-Initialize-len-before-calling-getsockopt.patch
 
 %description
 Libpcap provides a portable framework for low-level network
@@ -67,6 +76,15 @@ cp %{SOURCE3} .
 %patch6 -p1 -b .deadcode
 %patch7 -p1 -b .tstamp-precision-list-init
 %patch8 -p1 -b .tstamp-type-list-leak
+%patch9 -p1
+%patch10 -p1
+%patch11 -p1
+%patch12 -p1
+%patch13 -p1
+%patch14 -p1
+%patch15 -p1
+%patch16 -p1
+%patch17 -p1
 
 #sparc needs -fPIC 
 %ifarch %{sparc}
@@ -109,6 +127,15 @@ rm -rf $RPM_BUILD_ROOT
 %{_mandir}/man5/pcap*.5*
 
 %changelog
+* Wed Jan 28 2015 Michal Sekletar <msekleta@redhat.com> - 14:1.4.0-4.20130826git2dbcaa1
+- fix one more issue reported by coverity
+
+* Wed Jan 28 2015 Michal Sekletar <msekleta@redhat.com> - 14:1.4.0-3.20130826git2dbcaa1
+- fix issue discovered by coverity
+
+* Tue Jan 27 2015 Michal Sekletar <msekleta@redhat.com> - 14:1.4.0-2.20130826git2dbcaa1
+- fix filtering when vlan keyword is used in filter expression (#1025841, #1063328)
+
 * Wed Aug 28 2013 Michal Sekletar <msekleta@redhat.com> 14:1.4.0-20130826git2dbcaa1
 - update to snapshot 20130826git2dbcaa1 (#916749)
 
