@@ -1,7 +1,7 @@
 Name: libpcap
 Epoch: 14
 Version: 1.5.3
-Release: 8%{?dist}
+Release: 9%{?dist}
 Summary: A system-independent interface for user-level packet capture
 Group: Development/Libraries
 License: BSD with advertising
@@ -26,6 +26,7 @@ Patch14: 0005-Move-the-socket-ops-out-of-gencode.c.patch
 Patch15: 0001-Add-names-for-DLT_NETLINK.patch
 Patch16: 0001-Fix-link-type-for-nlmon.patch
 Patch17: 0001-bpf-make-sure-sll-header-size-if-accounted-for.patch
+Patch18: 0006-Bound-tpacketv2-to-64k.patch
 
 
 %description
@@ -95,6 +96,9 @@ rm -f $RPM_BUILD_ROOT%{_libdir}/libpcap.a
 %{_mandir}/man5/pcap*.5*
 
 %changelog
+* Mon May 29 2017 Martin Sehnoutka <msehnout@redhat.com> - 14:1.5.3-9
+- Bound packet size to 64k
+
 * Tue Sep 15 2015 Michal Sekletar <msekleta@redhat.com> - 14:1.5.3-8
 - make sure that sll header size is accounted for (#1176612)
 
