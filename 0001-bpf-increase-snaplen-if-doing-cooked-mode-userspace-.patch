@@ -1,0 +1,44 @@
+From 8ce2c17fd359a758b08bd15a33a0deae872c8231 Mon Sep 17 00:00:00 2001
+From: rpm-build <rpm-build>
+Date: Mon, 20 Apr 2015 13:47:28 +0200
+Subject: [PATCH] bpf: increase snaplen if doing cooked mode userspace
+ filtering
+
+This commit should address the issue when bpf_filter_with_auxdata returned 0 for valid
+packets because offset in filter exceeded tp_snaplen as returned by kernel. If
+we filter in cooked mode filter offsets are adjusted because sll_header, we
+should do the same for snaplen.
+---
+ pcap-linux.c | 5 ++++-
+ 1 file changed, 4 insertions(+), 1 deletion(-)
+
+diff --git a/pcap-linux.c b/pcap-linux.c
+index 95c94df..034bcd3 100644
+--- a/pcap-linux.c
++++ b/pcap-linux.c
+@@ -4186,6 +4186,7 @@ static int pcap_handle_packet_mmap(
+ 	unsigned char *bp;
+ 	struct sockaddr_ll *sll;
+ 	struct pcap_pkthdr pcaphdr;
++	unsigned int snaplen = tp_snaplen;
+ 
+ 	/* perform sanity check on internal offset. */
+ 	if (tp_mac + tp_snaplen > handle->bufsize) {
+@@ -4246,11 +4247,13 @@ static int pcap_handle_packet_mmap(
+ 		hdrp->sll_halen = htons(sll->sll_halen);
+ 		memcpy(hdrp->sll_addr, sll->sll_addr, SLL_ADDRLEN);
+ 		hdrp->sll_protocol = sll->sll_protocol;
++
++		snaplen += sizeof(struct sll_header);
+ 	}
+ 
+         if (handlep->filter_in_userland && handle->fcode.bf_insns &&
+             (bpf_filter(handle->fcode.bf_insns, bp,
+-                        tp_len, tp_snaplen) == 0))
++                        tp_len, snaplen) == 0))
+ 		return 0;
+ 
+ 	if (!linux_check_direction(handle, sll))
+-- 
+2.3.4
+

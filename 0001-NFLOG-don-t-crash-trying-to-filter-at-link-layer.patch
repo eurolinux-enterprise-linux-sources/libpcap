@@ -1,0 +1,41 @@
+From 676cf8a61ed240d0a86d471ef419f45ba35dba80 Mon Sep 17 00:00:00 2001
+From: Denis Ovsienko <infrastation@yandex.ru>
+Date: Thu, 5 Dec 2013 14:54:14 +0400
+Subject: [PATCH] NFLOG: don't crash trying to filter at link layer
+
+Before:
+
+@ tcpdump -i nflog icmp
+tcpdump: WARNING: SIOCGIFADDR: nflog: No such device
+Aborted (core dumped)
+
+After:
+
+@ tcpdump -i nflog icmp
+tcpdump: WARNING: SIOCGIFADDR: nflog: No such device
+tcpdump: NFLOG link-layer type filtering not implemented
+---
+ gencode.c | 7 +++++++
+ 1 file changed, 7 insertions(+)
+
+diff --git a/gencode.c b/gencode.c
+index 7bb07fb..d58ea30 100644
+--- a/gencode.c
++++ b/gencode.c
+@@ -3410,6 +3410,13 @@ gen_linktype(proto)
+ 
+ 	case DLT_AX25_KISS:
+ 		bpf_error("AX.25 link-layer type filtering not implemented");
++
++	case DLT_NFLOG:
++		/* Using the fixed-size NFLOG header it is possible to tell only
++		 * the address family of the packet, other meaningful data is
++		 * either missing or behind TLVs.
++		 */
++		bpf_error("NFLOG link-layer type filtering not implemented");
+ 	}
+ 
+ 	/*
+-- 
+1.8.4.2
+

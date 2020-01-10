@@ -1,0 +1,34 @@
+From b298835b3e4e918f00315f3a4e33e73c031ce98e Mon Sep 17 00:00:00 2001
+From: rpm-build <rpm-build>
+Date: Wed, 5 Nov 2014 07:41:11 +0100
+Subject: [PATCH] pcap-linux: don't use TPACKETV3 for memory mmapped capture
+
+There has been numerous reports from users complaining about changes in behavior
+of libpcap when using libpcap compiled with TPACKETV3 support. Back out and
+disable it.
+
+See: https://github.com/the-tcpdump-group/libpcap/issues/380
+See: https://github.com/the-tcpdump-group/libpcap/issues/364
+
+Resolves: #1085096
+---
+ pcap-linux.c | 3 ---
+ 1 file changed, 3 deletions(-)
+
+diff --git a/pcap-linux.c b/pcap-linux.c
+index 83bb107..117405b 100644
+--- a/pcap-linux.c
++++ b/pcap-linux.c
+@@ -198,9 +198,6 @@ static const char rcsid[] _U_ =
+   * uses many ring related structs and macros */
+ # ifdef TPACKET_HDRLEN
+ #  define HAVE_PACKET_RING
+-#  ifdef TPACKET3_HDRLEN
+-#   define HAVE_TPACKET3
+-#  endif /* TPACKET3_HDRLEN */
+ #  ifdef TPACKET2_HDRLEN
+ #   define HAVE_TPACKET2
+ #  else  /* TPACKET2_HDRLEN */
+-- 
+1.8.3.1
+
