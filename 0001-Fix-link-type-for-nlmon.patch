@@ -1,0 +1,31 @@
+From 674f2e8bd990be129932c5778d951ffee6eaefbd Mon Sep 17 00:00:00 2001
+From: Jakub Zawadzki <darkjames@darkjames.pl>
+Date: Sat, 7 Dec 2013 23:36:47 +0100
+Subject: [PATCH] Fix link-type for nlmon.
+
+Before patch:
+  tcpdump: listening on nlmon0, link-type LINUX_SLL (Linux cooked), capture size 65535 bytes
+
+After patch:
+  tcpdump: listening on nlmon0, link-type 253, capture size 65535 bytes
+---
+ pcap-linux.c | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+
+diff --git a/pcap-linux.c b/pcap-linux.c
+index 8800c96..7c07793 100644
+--- a/pcap-linux.c
++++ b/pcap-linux.c
+@@ -3195,7 +3195,8 @@ activate_new(pcap_t *handle)
+ 			 * same applies to LAPD capture.
+ 			 */
+ 			if (handle->linktype != DLT_LINUX_IRDA &&
+-			    handle->linktype != DLT_LINUX_LAPD)
++			    handle->linktype != DLT_LINUX_LAPD &&
++			    handle->linktype != DLT_NETLINK)
+ 				handle->linktype = DLT_LINUX_SLL;
+ 		}
+ 
+-- 
+2.4.3
+
