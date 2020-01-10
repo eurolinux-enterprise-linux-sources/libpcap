@@ -1,0 +1,37 @@
+From 98ab67580f4cdcede021f6f5a2d9d50bb86bff55 Mon Sep 17 00:00:00 2001
+From: Guy Harris <guy@alum.mit.edu>
+Date: Wed, 5 Nov 2014 11:19:39 -0800
+Subject: [PATCH 4/4] Get rid of unused variable.
+
+Also clean up white space a bit.
+
+(cherry picked from 86db77ce320dd9e81e5cc7b93ac9adf26643b140)
+---
+ gencode.c | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/gencode.c b/gencode.c
+index 2ff725e..9c1d17b 100644
+--- a/gencode.c
++++ b/gencode.c
+@@ -7940,7 +7940,7 @@ struct block *
+ gen_vlan(vlan_num)
+ 	int vlan_num;
+ {
+-	struct	block	*b0, *b1;
++	struct	block	*b0;
+ 
+ 	/* can't check for VLAN-encapsulated packets inside MPLS */
+ 	if (label_stack_depth > 0)
+@@ -8012,7 +8012,7 @@ struct block *
+ gen_mpls(label_num)
+ 	int label_num;
+ {
+-	struct	block	*b0,*b1;
++	struct	block	*b0, *b1;
+ 
+ 	/*
+ 	 * Change the offsets to point to the type and data fields within
+-- 
+2.4.3
+

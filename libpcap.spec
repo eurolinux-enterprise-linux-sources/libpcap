@@ -1,7 +1,7 @@
 Name: libpcap
 Epoch: 14
 Version: 1.5.3
-Release: 3%{?dist}.1
+Release: 8%{?dist}
 Summary: A system-independent interface for user-level packet capture
 Group: Development/Libraries
 License: BSD with advertising
@@ -14,6 +14,19 @@ Patch2:  libpcap-multilib.patch
 Patch3:  libpcap-s390.patch
 Patch4:  0001-NFLOG-don-t-crash-trying-to-filter-at-link-layer.patch
 Patch5:  0001-pcap-linux-don-t-use-TPACKETV3-for-memory-mmapped-ca.patch
+Patch6:  0001-Make-sure-the-userland-filtering-happens-correctly-o.patch
+Patch7:  0001-bpf-increase-snaplen-if-doing-cooked-mode-userspace-.patch
+Patch8:  0001-linktype-add-netlink-link-dlt-type.patch
+Patch9:  0001-Handle-using-cooked-mode-for-DLT_NETLINK-in-activate.patch
+Patch10: 0001-Introduce-bpf_filter1-function.patch
+Patch11: 0002-Use-BPF-extensions-in-compiled-filters.patch
+Patch12: 0003-More-descriptive-name-for-bpf_filter1.patch
+Patch13: 0004-Get-rid-of-unused-variable.patch
+Patch14: 0005-Move-the-socket-ops-out-of-gencode.c.patch
+Patch15: 0001-Add-names-for-DLT_NETLINK.patch
+Patch16: 0001-Fix-link-type-for-nlmon.patch
+Patch17: 0001-bpf-make-sure-sll-header-size-if-accounted-for.patch
+
 
 %description
 Libpcap provides a portable framework for low-level network
@@ -82,8 +95,23 @@ rm -f $RPM_BUILD_ROOT%{_libdir}/libpcap.a
 %{_mandir}/man5/pcap*.5*
 
 %changelog
-* Tue Dec  2 2014 Michal Sekletar <msekleta@redhat.com> - 14:1.5.3-3.1
-- disable TPACKET_V3 memory mapped packet capture on AF_PACKET socket, use TPACKET_V2 instead (#1169773)
+* Tue Sep 15 2015 Michal Sekletar <msekleta@redhat.com> - 14:1.5.3-8
+- make sure that sll header size is accounted for (#1176612)
+
+* Wed Jul 08 2015 Michal Sekletar <msekleta@redhat.com> - 14:1.5.3-7
+- make sure that netlink monitor interfaces are also properly recognized by tcpdump (#1031974)
+
+* Tue Jun 16 2015 Michal Sekletar <msekleta@redhat.com> - 14:1.5.3-6
+- libpcap now correctly recognizes Netlink datalink type (#1031974)
+- fix vlan tagged packet filtering (#1079525)
+
+* Tue Mar 31 2015 Michal Sekletar <msekleta@redhat.com> - 14:1.5.3-5
+- display also first packet when capturing in cooked mode (#1176612)
+- make sure that userland bpf filter interpreter is given snaplen such that size of
+  cooked header is account for
+
+* Tue Dec  2 2014 Michal Sekletar <msekleta@redhat.com> - 14:1.5.3-4
+- disable TPACKET_V3 memory mapped packet capture on AF_PACKET socket, use TPACKET_V2 instead (#1085096)
 
 * Thu Feb 13 2014 Michal Sekletar <msekleta@redhat.com> - 14:1.5.3-3
 - don't crash when trying to filter on interface with NFLOG link layer type (#1062511)
